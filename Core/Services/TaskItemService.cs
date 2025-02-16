@@ -1,11 +1,13 @@
 ﻿using Core.DTO;
-using Data.Respositories;
+using Data.Repositories;
 using Data.Entities;
 using AutoMapper;
+using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 
 namespace Core.Services
 {
-    internal class TaskItemService : ITaskItemService
+    public class TaskItemService : ITaskItemService
     {
         private readonly IGenericRepository<TaskItem> _taskItemRepository;
         private readonly IMapper _mapper;
@@ -26,29 +28,28 @@ namespace Core.Services
             return result;
         }
         
-        public async Task<IEnumerable<ReturnTaskItemDTO?>> GetAllAsync()
+        public async Task<IEnumerable<ReturnTaskItemDTO>> GetAllAsync(GetTaskItemDTO dto)
         {
-            var temp = await _taskItemRepository.GetAllAsync();
+            var temp = _taskItemRepository.GetAllQuery();
+            if (dto.Id != null)
+                temp = temp.Where(x => x.Id == dto.Id);
+            if (dto.Name != null)
+                temp = temp.Where(x => x.Name == dto.Name);
+            if(dto.IsCompleted != null)
+                temp = temp.Where(x => x.IsCompleted == dto.IsCompleted);
+            if (dto.TodoListId != null)
+                temp = temp.Where(x => x.TodoListID == dto.TodoListId);
 
-            IEnumerable<ReturnTaskItemDTO> result = [];
-            List<ReturnTaskItemDTO> local = [];
-            foreach (var item in temp)
-            {
-                ReturnTaskItemDTO x = _mapper.Map<ReturnTaskItemDTO>(item);
-                local.Add(x);
-            }
-            result = local;
-            return result;
+            return _mapper.Map<List<ReturnTaskItemDTO>>(await temp.ToListAsync());
         }
-        
+
         public async Task<ReturnTaskItemDTO> CreateAsync(GetTaskItemDTO dto)
         {
             if (dto.Name == null || dto.TodoListId == null)
                 throw new Exception("Name and TodoListId can't be null");
             TaskItem x = _mapper.Map<TaskItem>(dto);
             await _taskItemRepository.CreateAsync(x);
-            ReturnTaskItemDTO result = _mapper.Map<ReturnTaskItemDTO>(x);
-            return result;
+            return _mapper.Map<ReturnTaskItemDTO>(x);
         }
         
         public async Task<ReturnTaskItemDTO> UpdateAsync(GetTaskItemDTO dto)
@@ -57,8 +58,7 @@ namespace Core.Services
                 throw new Exception("Name and TodoListId can't be null!");
             TaskItem x = _mapper.Map<TaskItem>(dto);
             await _taskItemRepository.UpdateAsync(x);
-            ReturnTaskItemDTO result = _mapper.Map<ReturnTaskItemDTO>(x);
-            return result;
+            return _mapper.Map<ReturnTaskItemDTO>(x);
         }
         
         public async Task DeleteAsync(int id)
@@ -70,5 +70,6 @@ namespace Core.Services
             await _taskItemRepository.DeleteAsync(x);
             return;
         }
+   
     }
 }

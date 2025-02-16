@@ -1,11 +1,14 @@
-﻿using Data.Respositories;
+﻿using Data.Repositories;
 using Core.DTO;
 using Data.Entities;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
+using System.Linq;
 
 namespace Core.Services
 {
-    internal class TodoListService : ITodoListService
+    public class TodoListService : ITodoListService
     {
         private readonly IGenericRepository<TodoList> _todoListRepository;
         private readonly IMapper _mapper;
@@ -19,53 +22,62 @@ namespace Core.Services
 
         public async Task<ReturnTodoListDTO?> GetByIdAsync(int id)
         {
-            var temp = await _todoListRepository.GetByIdAsync(id);
-            if (temp == null)
-                return null;
-            
-            ReturnTodoListDTO result = _mapper.Map<ReturnTodoListDTO>(temp);
-            return result;
+            var temp = _todoListRepository.FindByCondition(x => x.Id == id, x => x.Tasks);
+
+            var test = await temp.ToListAsync();
+            var x = test.First();
+            return _mapper.Map<ReturnTodoListDTO>(x);
         }
 
-        public async Task<IEnumerable<ReturnTodoListDTO?>> GetAllAsync()
+        public async Task<IEnumerable<ReturnTodoListDTO>> GetAllAsync(GetTodoListDTO dto)
         {
-            var temp = await _todoListRepository.GetAllAsync();
+            var temp = _todoListRepository.FindByCondition(x => true, x=> x.Tasks);
+            if (dto.Id != null)
+                temp = temp.Where(x => x.Id == dto.Id);
+            if(dto.Name != null)
+                temp = temp.Where(x => x.Name == dto.Name);
+            if (dto.UserId != null)
+                temp = temp.Where(x => x.UserId == dto.UserId);
 
-            IEnumerable<ReturnTodoListDTO> result;
-            List<ReturnTodoListDTO> local = [];
-            foreach (var todo in temp)
-            {
-                ReturnTodoListDTO x = _mapper.Map<ReturnTodoListDTO>(todo);
-                local.Add(x);
-            }
-            result = local;
-            return result;
+            var test = await temp.ToListAsync();
+            return _mapper.Map<List<ReturnTodoListDTO>>(test);
+
         }
 
         public async Task<ReturnTodoListDTO> CreateAsync(GetTodoListDTO dto)
         {
             if(dto.Name == null || dto.UserId == null)
                 throw new Exception("UserId and Name can't be Null!");
-            
-            TodoList x = _mapper.Map<TodoList>(dto);
-            await _todoListRepository.CreateAsync(x);
-            ReturnTodoListDTO result = _mapper.Map<ReturnTodoListDTO>(x);
-            return result;
+            try
+            {
+                TodoList x = _mapper.Map<TodoList>(dto);
+                await _todoListRepository.CreateAsync(x);
+                return _mapper.Map<ReturnTodoListDTO>(x);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
 
         public async Task<ReturnTodoListDTO> UpdateAsync(GetTodoListDTO dto)
         {
-            if (dto.Name == null || dto.UserId == null)
-                throw new Exception("UserId and Name can't be Null!");
+            if (dto.Name == null || dto.Id == null)
+                throw new Exception("ID and Name can't be Null!");
 
-            var temp = await _todoListRepository.FindByConditionAsync(x => x.Id == dto.Id);
+            var temp = await _todoListRepository.GetByIdAsync((int)dto.Id);
             if (temp == null)
                 throw new Exception("This Id isn't found in the System!");
-            
-            TodoList x = _mapper.Map<TodoList>(dto);
-            await _todoListRepository.UpdateAsync(x);
-            ReturnTodoListDTO result = _mapper.Map<ReturnTodoListDTO>(x);
-            return result;
+            try
+            {
+                temp.Name = dto.Name;
+                await _todoListRepository.UpdateAsync(temp);
+                return _mapper.Map<ReturnTodoListDTO>(temp);
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
 
         public async Task DeleteAsync(int id)

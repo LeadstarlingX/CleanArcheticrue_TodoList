@@ -1,6 +1,6 @@
 ﻿using Data.Entities;
 
-namespace Data.Respositories
+namespace Data.Repositories
 {
     public interface IRepositoryManager
     {

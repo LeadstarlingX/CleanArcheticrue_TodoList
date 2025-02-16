@@ -1,9 +1,8 @@
 ﻿using System.Linq.Expressions;
+using Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
-using Data;
 
-namespace Data.Respositories
+namespace Data.Repositories
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
@@ -23,16 +22,24 @@ namespace Data.Respositories
             return await _db.Set<T>().ToListAsync();
         }
         
-        public IQueryable<T?> GetAllQueryAsync()
+        public IQueryable<T> GetAllQuery()
         {
             return  _db.Set<T>();
         }
 
         public async Task<T> CreateAsync(T entity)
         {
-            _db.Set<T>().Add(entity);
-            await _db.SaveChangesAsync();
-            return entity;
+            try
+            {
+                _db.Set<T>().Add(entity);
+
+                await _db.SaveChangesAsync();
+                return entity;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
 
         public async Task<T> UpdateAsync(T entity)
@@ -73,7 +80,9 @@ namespace Data.Respositories
             {
                 foreach (var attribute in attributes)
                 {
-                    results.Include(attribute);
+                   
+                    results = results.Include(attribute);
+
                 }
             }
             return results;

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Core.DTO
 {
-    internal class ReturnTodoListDTO
+    public class ReturnTodoListDTO
     {
         public int Id { get; set; }
         public string Name { get; set; }

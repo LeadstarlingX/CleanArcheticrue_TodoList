@@ -1,7 +1,6 @@
 ﻿using Data.Entities;
-using Data;
 
-namespace Data.Respositories
+namespace Data.Repositories
 {
     public class RepositoryManager : IRepositoryManager
     {

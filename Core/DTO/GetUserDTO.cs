@@ -6,11 +6,10 @@ using System.Threading.Tasks;
 
 namespace Core.DTO
 {
-    public class GetTaskItemDTO
+    public class GetUserDTO
     {
-        public string? Name { get; set; }
-        public bool? IsCompleted { get; set; }
-        public int? TodoListId { get; set; }
         public int? Id { get; set; }
+        public string? UserName { get; set; }
+        public string? PasswordHash { get; set; }
     }
 }

@@ -1,13 +1,12 @@
-﻿using Data.Entities;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
-namespace Data.Respositories
+namespace Data.Repositories
 {
     public interface IGenericRepository<T> where T : class
     {
         Task<T?> GetByIdAsync(int id);
-        Task<IEnumerable<T?>> GetAllAsync();
-        IQueryable<T?> GetAllQueryAsync();
+        Task<IEnumerable<T>> GetAllAsync();
+        IQueryable<T> GetAllQuery();
         Task<T> CreateAsync(T entity);
         Task<T> UpdateAsync(T entity);
         Task DeleteAsync(T entity);

@@ -11,20 +11,6 @@ startup.ConfigureServices(builder.Services);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-
-app.UseSwagger();
-app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MY API V1"));
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
 
 var env = app.Services.GetService<IWebHostEnvironment>();
 
