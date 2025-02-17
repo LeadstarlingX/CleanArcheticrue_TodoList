@@ -3,7 +3,11 @@ using Data.Entities;
 using Core.DTO;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.Extensions.Configuration;
 
 namespace Core.Services
 {
@@ -11,15 +15,19 @@ namespace Core.Services
     {
         private readonly IGenericRepository<User> _userRepository;
         private readonly IMapper _mapper;
+        private readonly IAuthenticationService _authenticationService;
 
-        public UserService(IGenericRepository<User> userRepository, IMapper mapper)
+        public UserService(IGenericRepository<User> userRepository, IMapper mapper,
+            IAuthenticationService authenticationService)
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _authenticationService = authenticationService;
         }
 
-        public async Task<ReturnUserDTO?> GetByIdAsync(int id)
+        public ReturnUserDTO? GetById()
         {
+            int id = _authenticationService.RetrieveUserID();
             var temp = _userRepository.FindByCondition(x => x.Id == id, x => x.TodoLists);
             temp = temp.Include(x => x.TodoLists).ThenInclude(x => x.Tasks);
             var x = temp.First();
@@ -30,8 +38,8 @@ namespace Core.Services
         {
             var temp = _userRepository.FindByCondition(x => true, x => x.TodoLists);
             temp = temp.Include(x => x.TodoLists).ThenInclude(x => x.Tasks);
-            if(dto.Id != null)
-                temp = temp.Where(x => x.Id == dto.Id);
+            if(dto.UserName != null)
+                temp = temp.Where(x => x.UserName == dto.UserName);
 
             return _mapper.Map<List<ReturnUserDTO>>(await temp.ToListAsync());
         }
@@ -39,11 +47,12 @@ namespace Core.Services
         public async Task<ReturnUserDTO> CreateAsync(GetUserDTO dto)
         {
             var temp = await _userRepository.FindByConditionAsync(x => x.UserName == dto.UserName);
-            if (temp.Count() != 0)
+            if (temp.Any())
                 throw new Exception("The username has been used before");
 
             dto.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
             User x = _mapper.Map<User>(dto);
+            x.RefreshToken = await _authenticationService.RefreshToken();
             await _userRepository.CreateAsync(x);
             return _mapper.Map<ReturnUserDTO>(x);
 
@@ -51,7 +60,8 @@ namespace Core.Services
 
         public async Task<ReturnUserDTO> UpdateAsync(ChangePasswordUserDTO dto)
         {
-            User temp = await _userRepository.GetByIdAsync(dto.Id);
+            int id = _authenticationService.RetrieveUserID();
+            User? temp = await _userRepository.GetByIdAsync(id);
             if (temp == null)
                 throw new Exception("Id isn't in the System!");
 
@@ -64,24 +74,16 @@ namespace Core.Services
             return _mapper.Map<ReturnUserDTO>(temp);
         }
 
-        public async Task<ReturnUserDTO?> Authinticate(LoginUserDTO dto)
+        public async Task DeleteAsync()
         {
-            var temp = await _userRepository.FindByConditionAsync(x => x.UserName == dto.UserName);
-            if (temp == null)
-                return null;
-            var x = temp.ToList().First();
-            bool verify = BCrypt.Net.BCrypt.Verify(dto.PasswordHash, x.PasswordHash);
-            return verify == true ? _mapper.Map<ReturnUserDTO>(x) : null;
-        }
-
-        public async Task DeleteAsync(int id)
-        {
+            int id = _authenticationService.RetrieveUserID();
             var temp = await _userRepository.GetByIdAsync(id);
             if (temp == null)
                 return;
             await _userRepository.DeleteAsync(temp);
             return;
         }
+
 
     }
 }

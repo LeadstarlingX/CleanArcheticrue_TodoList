@@ -14,6 +14,6 @@ var app = builder.Build();
 
 var env = app.Services.GetService<IWebHostEnvironment>();
 
-startup.Configure(app, env);
+startup.Configure(app, env!);
 
 app.Run();

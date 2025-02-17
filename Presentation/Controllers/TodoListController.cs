@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Core.Services;
 using Core.DTO;
-using Microsoft.Identity.Client;
 using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Presentation.Controllers
 {
@@ -10,18 +11,19 @@ namespace Presentation.Controllers
     [Route("[controller]/[action]")]
     public class TodoListController : ControllerBase
     {
-        private readonly ITodoListService _services;
+        private readonly ITodoListService _todolistService;
+
 
         public TodoListController(ITodoListService services)
         {
-            _services = services;
+            _todolistService = services;
         }
 
         [Authorize]
         [HttpGet]
         public async Task<ActionResult<ReturnTodoListDTO>> GetById(int id)
         {
-            var temp = await _services.GetByIdAsync(id);
+            var temp = await _todolistService.GetByIdAsync(id);
             return temp != null ? Ok(temp) : NotFound();
         }
 
@@ -29,8 +31,15 @@ namespace Presentation.Controllers
         [HttpPost]
         public async Task<ActionResult<IEnumerable<ReturnTodoListDTO>>> GetAllAsync([FromBody]GetTodoListDTO dto)
         {
-            var temp = await _services.GetAllAsync(dto);
-            return temp != null ? Ok(temp.ToList()) : NoContent();
+            try
+            {
+                var temp = await _todolistService.GetAllAsync(dto);
+                return temp != null ? Ok(temp.ToList()) : NoContent();
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         [Authorize]
@@ -39,7 +48,7 @@ namespace Presentation.Controllers
         {
             try
             {
-                var result = await _services.UpdateAsync(dto);
+                var result = await _todolistService.UpdateAsync(dto);
                 return Ok(result);
             }
             catch (Exception e)
@@ -54,7 +63,7 @@ namespace Presentation.Controllers
         {
             try
             {
-                var result = await _services.CreateAsync(dto);
+                var result = await _todolistService.CreateAsync(dto);
                 return Ok(result);
             }
             catch (Exception e)
@@ -69,7 +78,7 @@ namespace Presentation.Controllers
         {
             try
             {
-                await _services.DeleteAsync(id);
+                await _todolistService.DeleteAsync(id);
                 return Ok();
             }
             catch (Exception e)
@@ -78,5 +87,6 @@ namespace Presentation.Controllers
             }
         }
 
+  
     }
 }

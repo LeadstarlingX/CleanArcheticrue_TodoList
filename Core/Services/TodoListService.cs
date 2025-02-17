@@ -3,20 +3,21 @@ using Core.DTO;
 using Data.Entities;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Diagnostics;
-using System.Linq;
 
 namespace Core.Services
 {
     public class TodoListService : ITodoListService
     {
         private readonly IGenericRepository<TodoList> _todoListRepository;
+        private readonly IAuthenticationService _authenticationService;
         private readonly IMapper _mapper;
 
 
-        public TodoListService (IGenericRepository<TodoList> todoListRepository, IMapper mapper)
+        public TodoListService (IGenericRepository<TodoList> todoListRepository, IMapper mapper,
+            IAuthenticationService authenticationService)
         {
             _todoListRepository = todoListRepository;
+            _authenticationService = authenticationService;
             _mapper = mapper;
         }
 
@@ -31,13 +32,14 @@ namespace Core.Services
 
         public async Task<IEnumerable<ReturnTodoListDTO>> GetAllAsync(GetTodoListDTO dto)
         {
+            int id = _authenticationService.RetrieveUserID();
             var temp = _todoListRepository.FindByCondition(x => true, x=> x.Tasks);
             if (dto.Id != null)
                 temp = temp.Where(x => x.Id == dto.Id);
             if(dto.Name != null)
                 temp = temp.Where(x => x.Name == dto.Name);
-            if (dto.UserId != null)
-                temp = temp.Where(x => x.UserId == dto.UserId);
+
+            temp = temp.Where(x => x.UserId == id);
 
             var test = await temp.ToListAsync();
             return _mapper.Map<List<ReturnTodoListDTO>>(test);
@@ -46,8 +48,9 @@ namespace Core.Services
 
         public async Task<ReturnTodoListDTO> CreateAsync(GetTodoListDTO dto)
         {
-            if(dto.Name == null || dto.UserId == null)
-                throw new Exception("UserId and Name can't be Null!");
+            dto.Id = _authenticationService.RetrieveUserID();
+            if(dto.Name == null)
+                throw new Exception("Name can't be Null!");
             try
             {
                 TodoList x = _mapper.Map<TodoList>(dto);
@@ -62,12 +65,13 @@ namespace Core.Services
 
         public async Task<ReturnTodoListDTO> UpdateAsync(GetTodoListDTO dto)
         {
-            if (dto.Name == null || dto.Id == null)
-                throw new Exception("ID and Name can't be Null!");
+            dto.Id= _authenticationService.RetrieveUserID();
+            if (dto.Name == null)
+                throw new Exception("Name can't be Null!");
 
             var temp = await _todoListRepository.GetByIdAsync((int)dto.Id);
             if (temp == null)
-                throw new Exception("This Id isn't found in the System!");
+                throw new Exception("This Id wasn't found in the System!");
             try
             {
                 temp.Name = dto.Name;

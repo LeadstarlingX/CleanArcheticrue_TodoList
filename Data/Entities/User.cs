@@ -12,6 +12,8 @@ namespace Data.Entities
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
+        public string? RefreshToken { get; set; } = string.Empty;
+
         public ICollection<TodoList> TodoLists { get; set; } = [];
     }
 }

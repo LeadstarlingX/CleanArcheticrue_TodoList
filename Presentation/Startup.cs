@@ -6,7 +6,6 @@ using Core.Mappers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.OpenApi.Models;
 
 namespace Presentation
@@ -39,14 +38,14 @@ namespace Presentation
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtIssuer,
                         ValidAudience = jwtAudience,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!)),
+                        ClockSkew = TimeSpan.Zero,
+                        RequireExpirationTime = true
                     };
                 });
 
-            //services.AddAuthentication();
             services.AddAuthorization();
-
+            services.AddHttpContextAccessor();
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(Configuration.GetConnectionString("TodoList")));
             services.AddEndpointsApiExplorer();
@@ -72,7 +71,7 @@ namespace Presentation
                 c.AddSecurityDefinition(securityScheme.Reference.Id, securityScheme);
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-        { securityScheme, Array.Empty<string>() }
+                    { securityScheme, Array.Empty<string>() }
                 });
             });
 
@@ -81,6 +80,7 @@ namespace Presentation
             services.AddScoped<ITodoListService, TodoListService>();
             services.AddScoped<ITaskItemService, TaskItemService>();
             services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
         }
@@ -97,10 +97,12 @@ namespace Presentation
             {
                 app.UseHsts();
             }
+
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseResponseWrapper();
 
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
