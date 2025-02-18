@@ -7,13 +7,13 @@ var startup = new Startup(builder.Configuration);
 startup.ConfigureServices(builder.Services);
 
 
-// Add services to the container.
 
 var app = builder.Build();
 
+var logger = app.Services.GetService<ILogger<Startup>>();
 
 var env = app.Services.GetService<IWebHostEnvironment>();
 
-startup.Configure(app, env!);
+startup.Configure(app, env!, logger!);
 
 app.Run();

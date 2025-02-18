@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Logging;
 
 namespace Presentation
 {
@@ -23,6 +24,13 @@ namespace Presentation
 
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging(logging =>
+            {
+                logging.ClearProviders();
+                logging.AddConsole();
+                logging.AddDebug();
+            });
+
             services.AddControllers();
             var jwtKey = Configuration["Jwt:Key"];
             var jwtIssuer = Configuration["Jwt:Issuer"];
@@ -60,7 +68,7 @@ namespace Presentation
                     Description = "Enter JWT Bearer token **_only_**",
                     In = ParameterLocation.Header,
                     Type = SecuritySchemeType.Http,
-                    Scheme = "bearer", // must be lowercase
+                    Scheme = "bearer",
                     BearerFormat = "JWT",
                     Reference = new OpenApiReference
                     {
@@ -85,8 +93,10 @@ namespace Presentation
 
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env,
+            ILogger<Startup> logger)
         {
+            logger.LogInformation($"Starting the application in {env.EnvironmentName} mode.");
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -107,6 +117,7 @@ namespace Presentation
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });
+            logger.LogInformation("The application has been started.");
         }
     
     }

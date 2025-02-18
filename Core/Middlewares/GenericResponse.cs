@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 public class ApiResponse<T>
 {
@@ -13,9 +14,12 @@ public class ApiResponse<T>
 public class ResponseMiddleware
 {
     private readonly RequestDelegate _next;
-    public ResponseMiddleware(RequestDelegate next)
+    private readonly ILogger<ResponseMiddleware> _logger;
+
+    public ResponseMiddleware(RequestDelegate next, ILogger<ResponseMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -23,13 +27,10 @@ public class ResponseMiddleware
         var originalBodyStream = context.Response.Body;
         try
         {
-
             using var memoryStream = new MemoryStream();
             context.Response.Body = memoryStream;
 
-
             await _next(context);
-
 
             memoryStream.Position = 0;
             var reader = new StreamReader(memoryStream);
@@ -57,7 +58,7 @@ public class ResponseMiddleware
                 }
                 catch (Exception ex)
                 {
-
+                    _logger.LogError(ex,"An unhandled exception occurred. (Inner  try-catch block) \n");
                     response.Success = false;
                     response.StatusCode = 500;
                     response.Message = ex.Message;
@@ -77,7 +78,7 @@ public class ResponseMiddleware
         }
         catch (Exception ex)
         {
-
+            _logger.LogError(ex, "An unhandled exception occurred. (Outer  try-catch block) \n");
             context.Response.StatusCode = 500;
             context.Response.ContentType = "application/json";
 
